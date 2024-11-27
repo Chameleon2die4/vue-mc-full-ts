@@ -1,31 +1,33 @@
-import { ref, Ref } from 'vue'
-import { get, set, defaultsDeep, isEmpty, isPlainObject, each, unset, has, merge } from 'lodash'
+import { ref, Ref, isRef, UnwrapRef } from 'vue'
+import { get, set, defaultsDeep, isEmpty, isPlainObject, each, unset, has, merge, isEqual } from 'lodash'
 import { Base } from './Base'
 import { ValidationError } from './errors/ValidationError'
 import { Collection } from './Collection'
 import { Request } from './Request'
 import { Response } from './Response'
+import { IModelOptions } from './types'
 
-export class Model extends Base {
-    protected _collections: Ref<Record<string, any>>
-    protected _reference: Ref<Record<string, any>>
-    protected _attributes: Ref<Record<string, any>>
-    protected _mutations: Ref<Record<string, any>>
-    protected _errors: Ref<Record<string, any>>
-    protected _loading: Ref<boolean>
-    protected _saving: Ref<boolean>
-    protected _deleting: Ref<boolean>
-    protected _fatal: Ref<boolean>
+export class Model<A extends Record<string, any> = Record<string, any>> extends Base {
+    [key: string]: any;  // Add index signature to allow property access
 
-    constructor(attributes: Record<string, any> = {}, collection: Collection | null = null, options: Record<string, any> = {}) {
+    declare public attributes: Ref<A>
+    declare protected _collections: Ref<Record<string, any>>
+    declare protected _reference: Ref<A>
+    declare protected _mutations: Ref<Record<string, any>>
+    declare protected _errors: Ref<Record<string, any>>
+    declare protected _loading: Ref<boolean>
+    declare protected _saving: Ref<boolean>
+    declare protected _deleting: Ref<boolean>
+    declare protected _fatal: Ref<boolean>
+
+    constructor(attributes: A | Ref<A> = {} as A, collection: Collection | null = null, options: Record<string, any> = {}) {
         super(options)
         
         // Set options on the base class
         this.setOptions(merge({}, this.getDefaultOptions(), this.options(), options))
 
+        // Initialize all refs first
         this._collections = ref({}) // Collections that contain this model
-        this._reference = ref({})   // Saved attribute state
-        this._attributes = ref({})  // Active attribute state
         this._mutations = ref({})   // Mutator cache
         this._errors = ref({})      // Validation errors
         this._loading = ref(false)
@@ -33,18 +35,50 @@ export class Model extends Base {
         this._deleting = ref(false)
         this._fatal = ref(false)
 
+        // Handle attribute initialization with proper type casting
+        const defaultAttrs = {} as A
+        const inputAttrs: A = isRef(attributes) 
+            ? (attributes.value || defaultAttrs)
+            : (attributes || defaultAttrs)
+
+        // Create refs with explicit type annotations
+        const attrRef = ref(inputAttrs) as Ref<A>
+        this.attributes = attrRef
+        this._reference = ref(inputAttrs) as Ref<A>
+
         // Store the collection reference
         if (collection) {
             this._collections.value[collection.uniqueId()] = collection
         }
 
-        // Set the initial attributes
-        this.assign(attributes)
-
         this.clearState()
 
         // Cache mutator pipelines so they can run as a single function
         this.compileMutators()
+
+        // Create a proxy to allow direct property access
+        return new Proxy(this, {
+            get(target: Model<A>, prop: string) {
+                if (prop in target) {
+                    return target[prop as keyof Model<A>];
+                }
+                if (prop in target.attributes.value) {
+                    return target.get(prop);
+                }
+                return undefined;
+            },
+            set(target: Model<A>, prop: string, value: any) {
+                if (prop in target) {
+                    (target as any)[prop] = value;
+                    return true;
+                }
+                if (prop in target.attributes.value || !(prop in target)) {
+                    target.set(prop, value);
+                    return true;
+                }
+                return false;
+            }
+        });
     }
 
     // Getters and setters for reactive properties
@@ -81,8 +115,8 @@ export class Model extends Base {
     }
 
     // Returns default attributes
-    defaults(): Record<string, any> {
-        return {}
+    defaults(): A {
+        return {} as A
     }
 
     // Returns validation rules
@@ -112,7 +146,7 @@ export class Model extends Base {
     }
 
     // Creates a copy of this model
-    clone(): Model {
+    clone(): Model<A> {
         const attributes = this.getAttributes()
         return new (this.constructor as any)(attributes, null)
     }
@@ -143,7 +177,7 @@ export class Model extends Base {
     }
 
     // Validates all attributes
-    async validate(attributes?: Record<string, any>): Promise<boolean> {
+    async validate(attributes?: A): Promise<boolean> {
         let valid = true
 
         // Validate all attributes if none provided
@@ -191,13 +225,13 @@ export class Model extends Base {
 
     // Gets an attribute value
     get(attribute: string, fallback?: any): any {
-        return get(this._attributes.value, attribute, fallback)
+        return get(this.attributes.value, attribute, fallback)
     }
 
     // Sets an attribute value
-    set(attribute: string | Record<string, any>, value?: any): void {
+    set(attribute: string | A, value?: any): void {
         if (isPlainObject(attribute)) {
-            each(attribute as Record<string, any>, (value: any, key: string) => {
+            each(attribute as A, (value: any, key: string) => {
                 this.set(key, value)
             })
             return
@@ -205,17 +239,17 @@ export class Model extends Base {
 
         // Handle string attribute
         if (typeof attribute === 'string') {
-            set(this._attributes.value, attribute, this.mutated(attribute as string, value))
+            set(this.attributes.value, attribute, this.mutated(attribute as string, value))
         }
     }
 
     // Gets all attributes
-    getAttributes(): Record<string, any> {
-        return this._attributes.value
+    getAttributes(): A {
+        return this.attributes.value
     }
 
     // Resets attributes to their original state
-    reset(attribute?: string | string[] | Record<string, any>): void {
+    reset(attribute?: string | string[] | A): void {
         if (attribute) {
             // If it's a record, reset all its keys
             if (typeof attribute === 'object' && !Array.isArray(attribute)) {
@@ -229,7 +263,7 @@ export class Model extends Base {
                 })
             }
         } else {
-            this._attributes.value = {...this._reference.value}
+            this.attributes.value = {...this._reference.value}
         }
     }
 
@@ -279,7 +313,7 @@ export class Model extends Base {
     }
 
     // Gets data for saving
-    getSaveData(): Record<string, any> {
+    getSaveData(): A {
         return this.getAttributes()
     }
 
@@ -337,7 +371,7 @@ export class Model extends Base {
 
     // Syncs the current state
     sync(): void {
-        this._reference.value = {...this._attributes.value}
+        this._reference.value = {...this.attributes.value}
     }
 
     // Registers a collection
@@ -366,12 +400,12 @@ export class Model extends Base {
     }
 
     // Assigns attributes
-    assign(attributes: Record<string, any>): Record<string, any> {
+    assign(attributes: A): A {
         // Fill in the defaults
         attributes = defaultsDeep({}, attributes, this.defaults())
 
         // Set the attributes
-        this._attributes.value = attributes
+        this.attributes.value = attributes
         this._reference.value = {...attributes}
 
         return attributes
@@ -392,34 +426,39 @@ export class Model extends Base {
     }
 
     // Returns default options
-    getDefaultOptions(): Record<string, any> {
-        return {
-            ...super.getDefaultOptions(),
-            identifier: 'id',        // The attribute that uniquely identifies this model
+    protected getDefaultOptions(): IModelOptions {
+        return merge(super.getDefaultOptions(), {
             methods: {
-                fetch: 'get',        // HTTP method for fetch requests
-                save: 'post',        // HTTP method for save requests
-                update: 'put',       // HTTP method for update requests
-                create: 'post',      // HTTP method for create requests
-                patch: 'patch',      // HTTP method for patch requests
-                delete: 'delete',    // HTTP method for delete requests
+                fetch: 'get',      // HTTP method for fetch requests
+                save: 'post',      // HTTP method for save requests
+                update: 'put',     // HTTP method for update requests
+                create: 'post',    // HTTP method for create requests
+                delete: 'delete',  // HTTP method for delete requests
+                patch: 'patch',    // HTTP method for patch requests
             },
-            patch: false,           // Whether to use PATCH for updates
-            routes: {
-                fetch: '',          // Route for fetch requests
-                save: '',           // Route for save requests
-                update: '',         // Route for update requests
-                create: '',         // Route for create requests
-                delete: '',         // Route for delete requests
-            },
+            routeParameterName: 'id',  // Name of the route parameter
+            useFirstErrorOnly: true,   // Whether to use only the first error message
+            patch: false,              // Whether to use PATCH for updates
             validationErrorStatus: 422  // HTTP status code for validation errors
-        }
+        })
     }
 
     // Returns a native representation for JSON stringification
-    toJSON(): Record<string, any> {
+    toJSON(): A {
         return {
-            ...this._attributes.value
+            ...this.attributes.value
         }
+    }
+
+    // Returns an array of attribute names that have changed, or false if no
+    // changes have been made since the last time this model was synced.
+    changed(): string[] | false {
+        const changed: string[] = []
+        each(this.attributes.value, (value: any, attribute: string) => {
+            if (!isEqual(value, this.saved(attribute))) {
+                changed.push(attribute)
+            }
+        })
+        return !isEmpty(changed) ? changed : false
     }
 }

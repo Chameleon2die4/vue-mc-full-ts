@@ -1,6 +1,6 @@
 {
   "name": "vue-mc-full-ts",
-  "version": "1.0.3",
+  "version": "1.0.7",
   "description": "TypeScript version of Vue Model Collections library",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

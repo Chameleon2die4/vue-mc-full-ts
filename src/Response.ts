@@ -1,10 +1,10 @@
 import { AxiosResponse } from 'axios'
 import { ICustomResponse, IResponseData } from './types'
 
-export class Response implements ICustomResponse {
+export class Response<T = IResponseData> implements ICustomResponse<T> {
     constructor(public response: AxiosResponse) {}
 
-    getData(): IResponseData {
+    getData(): T {
         return this.response.data
     }
 

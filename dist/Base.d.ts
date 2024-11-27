@@ -2,7 +2,7 @@ import { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { Request } from './Request';
 import { Response } from './Response';
 import { Ref } from 'vue';
-import { IRequestOptions } from './types';
+import { IBaseOptions, IRequestOptions } from './types';
 export declare abstract class Base {
     protected _options: Record<string, any>;
     protected _http: AxiosInstance;
@@ -11,7 +11,7 @@ export declare abstract class Base {
     constructor(options?: Record<string, any>);
     protected options(): Record<string, any>;
     protected createHTTPClient(): AxiosInstance;
-    protected getDefaultOptions(): Record<string, any>;
+    protected getDefaultOptions(): IBaseOptions;
     protected getHTTPConfig(): AxiosRequestConfig;
     setOption(key: string, value: any): void;
     setOptions(options: Record<string, any>): void;

@@ -12,24 +12,53 @@ class Model extends Base_1.Base {
         super(options);
         // Set options on the base class
         this.setOptions((0, lodash_1.merge)({}, this.getDefaultOptions(), this.options(), options));
+        // Initialize all refs first
         this._collections = (0, vue_1.ref)({}); // Collections that contain this model
-        this._reference = (0, vue_1.ref)({}); // Saved attribute state
-        this._attributes = (0, vue_1.ref)({}); // Active attribute state
         this._mutations = (0, vue_1.ref)({}); // Mutator cache
         this._errors = (0, vue_1.ref)({}); // Validation errors
         this._loading = (0, vue_1.ref)(false);
         this._saving = (0, vue_1.ref)(false);
         this._deleting = (0, vue_1.ref)(false);
         this._fatal = (0, vue_1.ref)(false);
+        // Handle attribute initialization with proper type casting
+        const defaultAttrs = {};
+        const inputAttrs = (0, vue_1.isRef)(attributes)
+            ? (attributes.value || defaultAttrs)
+            : (attributes || defaultAttrs);
+        // Create refs with explicit type annotations
+        const attrRef = (0, vue_1.ref)(inputAttrs);
+        this.attributes = attrRef;
+        this._reference = (0, vue_1.ref)(inputAttrs);
         // Store the collection reference
         if (collection) {
             this._collections.value[collection.uniqueId()] = collection;
         }
-        // Set the initial attributes
-        this.assign(attributes);
         this.clearState();
         // Cache mutator pipelines so they can run as a single function
         this.compileMutators();
+        // Create a proxy to allow direct property access
+        return new Proxy(this, {
+            get(target, prop) {
+                if (prop in target) {
+                    return target[prop];
+                }
+                if (prop in target.attributes.value) {
+                    return target.get(prop);
+                }
+                return undefined;
+            },
+            set(target, prop, value) {
+                if (prop in target) {
+                    target[prop] = value;
+                    return true;
+                }
+                if (prop in target.attributes.value || !(prop in target)) {
+                    target.set(prop, value);
+                    return true;
+                }
+                return false;
+            }
+        });
     }
     // Getters and setters for reactive properties
     get loading() {
@@ -150,7 +179,7 @@ class Model extends Base_1.Base {
     }
     // Gets an attribute value
     get(attribute, fallback) {
-        return (0, lodash_1.get)(this._attributes.value, attribute, fallback);
+        return (0, lodash_1.get)(this.attributes.value, attribute, fallback);
     }
     // Sets an attribute value
     set(attribute, value) {
@@ -162,12 +191,12 @@ class Model extends Base_1.Base {
         }
         // Handle string attribute
         if (typeof attribute === 'string') {
-            (0, lodash_1.set)(this._attributes.value, attribute, this.mutated(attribute, value));
+            (0, lodash_1.set)(this.attributes.value, attribute, this.mutated(attribute, value));
         }
     }
     // Gets all attributes
     getAttributes() {
-        return this._attributes.value;
+        return this.attributes.value;
     }
     // Resets attributes to their original state
     reset(attribute) {
@@ -186,7 +215,7 @@ class Model extends Base_1.Base {
             }
         }
         else {
-            this._attributes.value = { ...this._reference.value };
+            this.attributes.value = { ...this._reference.value };
         }
     }
     // Gets a saved attribute value
@@ -275,7 +304,7 @@ class Model extends Base_1.Base {
     }
     // Syncs the current state
     sync() {
-        this._reference.value = { ...this._attributes.value };
+        this._reference.value = { ...this.attributes.value };
     }
     // Registers a collection
     registerCollection(collection) {
@@ -304,7 +333,7 @@ class Model extends Base_1.Base {
         // Fill in the defaults
         attributes = (0, lodash_1.defaultsDeep)({}, attributes, this.defaults());
         // Set the attributes
-        this._attributes.value = attributes;
+        this.attributes.value = attributes;
         this._reference.value = { ...attributes };
         return attributes;
     }
@@ -322,33 +351,37 @@ class Model extends Base_1.Base {
     }
     // Returns default options
     getDefaultOptions() {
-        return {
-            ...super.getDefaultOptions(),
-            identifier: 'id', // The attribute that uniquely identifies this model
+        return (0, lodash_1.merge)(super.getDefaultOptions(), {
             methods: {
                 fetch: 'get', // HTTP method for fetch requests
                 save: 'post', // HTTP method for save requests
                 update: 'put', // HTTP method for update requests
                 create: 'post', // HTTP method for create requests
-                patch: 'patch', // HTTP method for patch requests
                 delete: 'delete', // HTTP method for delete requests
+                patch: 'patch', // HTTP method for patch requests
             },
+            routeParameterName: 'id', // Name of the route parameter
+            useFirstErrorOnly: true, // Whether to use only the first error message
             patch: false, // Whether to use PATCH for updates
-            routes: {
-                fetch: '', // Route for fetch requests
-                save: '', // Route for save requests
-                update: '', // Route for update requests
-                create: '', // Route for create requests
-                delete: '', // Route for delete requests
-            },
             validationErrorStatus: 422 // HTTP status code for validation errors
-        };
+        });
     }
     // Returns a native representation for JSON stringification
     toJSON() {
         return {
-            ...this._attributes.value
+            ...this.attributes.value
         };
+    }
+    // Returns an array of attribute names that have changed, or false if no
+    // changes have been made since the last time this model was synced.
+    changed() {
+        const changed = [];
+        (0, lodash_1.each)(this.attributes.value, (value, attribute) => {
+            if (!(0, lodash_1.isEqual)(value, this.saved(attribute))) {
+                changed.push(attribute);
+            }
+        });
+        return !(0, lodash_1.isEmpty)(changed) ? changed : false;
     }
 }
 exports.Model = Model;

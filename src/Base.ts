@@ -3,7 +3,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
 import { Request } from './Request'
 import { Response } from './Response'
 import { ref, Ref } from 'vue'
-import { IRequestOptions } from './types'
+import { IBaseOptions, IRequestOptions } from './types'
 
 export abstract class Base {
     protected _options: Record<string, any>
@@ -34,7 +34,7 @@ export abstract class Base {
     }
 
     // Returns the default options for this instance
-    protected getDefaultOptions(): Record<string, any> {
+    protected getDefaultOptions(): IBaseOptions {
         return {
             // The HTTP client instance
             http: null,

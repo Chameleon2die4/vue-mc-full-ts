@@ -28,16 +28,30 @@ npm install vue-mc-full-ts
 
 ## Basic Usage
 
+There are two ways to add type safety to your models:
+
+### Approach 1: Using a getter
+
 ```typescript
 import { Model, Collection } from 'vue-mc-full-ts';
 
-// Define a model with TypeScript types
+interface UserAttributes {
+    name: string;
+    email: string;
+    active: boolean;
+}
+
 class User extends Model {
-    defaults(): Record<string, any> {
+    // Type the model's attributes using a getter
+    get attributes(): UserAttributes {
+        return this._attributes.value as UserAttributes;
+    }
+
+    defaults(): Partial<UserAttributes> {
         return {
             name: '',
             email: '',
-            active: false
+            active: false,
         };
     }
 
@@ -58,8 +72,8 @@ class User extends Model {
 }
 
 // Define a collection with TypeScript types
-class UserCollection extends Collection {
-    model(): typeof Model {
+class UserCollection extends Collection<User> {
+    model(): typeof User {
         return User;
     }
 
@@ -84,6 +98,76 @@ await user.save();
 // Fetch from API
 await users.fetch();
 ```
+
+### Approach 2: Using declare
+
+```typescript
+import { Model, Collection } from 'vue-mc-full-ts';
+import { Ref } from 'vue';
+
+interface UserAttributes {
+    name: string;
+    email: string;
+    active: boolean;
+}
+
+class User extends Model {
+    // Type the model's attributes using declare
+    declare attributes: Ref<UserAttributes>;
+
+    defaults(): Partial<UserAttributes> {
+        return {
+            name: '',
+            email: '',
+            active: false,
+        };
+    }
+
+    validation(): Record<string, any> {
+        return {
+            name: (value: string) => Boolean(value) || 'Name is required',
+            email: (value: string) => /\S+@\S+\.\S+/.test(value) || 'Invalid email'
+        };
+    }
+
+    // Route configuration for API requests
+    routes(): Record<string, string> {
+        return {
+            fetch: 'users/{id}',
+            save: 'users'
+        };
+    }
+}
+
+// Define a collection with TypeScript types
+class UserCollection extends Collection<User> {
+    model(): typeof User {
+        return User;
+    }
+
+    // Route configuration for the collection
+    routes(): Record<string, string> {
+        return {
+            fetch: 'users'
+        };
+    }
+}
+
+// Usage in Vue component
+const user = new User({ name: 'John' });
+const users = new UserCollection();
+
+// Validate
+await user.validate(); // Returns Promise<boolean>
+
+// Save to API
+await user.save();
+
+// Fetch from API
+await users.fetch();
+```
+
+Both approaches provide full type safety for your model attributes. Choose the one that best fits your coding style.
 
 ## Differences from vue-mc
 
@@ -113,16 +197,17 @@ For TypeScript-specific features and improvements, check the following sections:
 ### Type-Safe Models
 
 ```typescript
-interface UserData {
+interface UserAttributes {
     id: number;
     name: string;
     email: string;
 }
 
 class User extends Model {
-    declare attributes: UserData;
+    // Type the model's attributes using declare
+    declare attributes: Ref<UserAttributes>;
 
-    defaults(): Partial<UserData> {
+    defaults(): Partial<UserAttributes> {
         return {
             name: '',
             email: ''

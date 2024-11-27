@@ -1,9 +1,9 @@
 import { AxiosResponse } from 'axios';
 import { ICustomResponse, IResponseData } from './types';
-export declare class Response implements ICustomResponse {
+export declare class Response<T = IResponseData> implements ICustomResponse<T> {
     response: AxiosResponse;
     constructor(response: AxiosResponse);
-    getData(): IResponseData;
+    getData(): T;
     getStatus(): number;
     getHeaders(): any;
     getValidationErrors(): any[];

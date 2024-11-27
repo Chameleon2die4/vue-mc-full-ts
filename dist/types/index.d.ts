@@ -2,9 +2,9 @@ import { AxiosResponse } from 'axios';
 export interface IResponseData {
     [key: string]: any;
 }
-export interface ICustomResponse {
+export interface ICustomResponse<T = IResponseData> {
     response: AxiosResponse;
-    getData(): IResponseData;
+    getData(): T;
     getStatus(): number;
     getHeaders(): any;
     getValidationErrors(): any[];
@@ -50,3 +50,38 @@ export interface IResponseError extends Error {
     getResponse(): ICustomResponse;
 }
 export type Routes = Record<'fetch' | 'save' | 'delete' | string, string>;
+export interface IBaseOptions {
+    http: any | null;
+    autoCatch: boolean;
+    autoSave: boolean;
+    autoValidate: boolean;
+    validateOnChange: boolean;
+    [key: string]: any;
+}
+export interface IModelOptions extends IBaseOptions {
+    methods: {
+        fetch: string;
+        save: string;
+        update: string;
+        create: string;
+        delete: string;
+        patch: string;
+    };
+    routeParameterName: string;
+    useFirstErrorOnly: boolean;
+    patch: boolean;
+    validationErrorStatus: number;
+}
+export interface ICollectionOptions extends IBaseOptions {
+    methods: {
+        fetch: string;
+    };
+    queryParameter: string;
+    pageParameter: string;
+    perPageParameter: string;
+    sortParameter: string;
+    sortDirectionParameter: string;
+    filterParameter: string;
+    searchParameter: string;
+    delimiter: string;
+}

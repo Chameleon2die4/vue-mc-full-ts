@@ -2,6 +2,7 @@ import { ref, Ref } from 'vue'
 import { get, set, defaultsDeep, defaultTo, values, isEmpty, isPlainObject, each, merge, every } from 'lodash'
 import { Base } from './Base'
 import { Model } from './Model'
+import { ICollectionOptions } from './types'
 
 // Used as a marker to indicate that pagination is not enabled
 export const NO_PAGE = null
@@ -272,10 +273,25 @@ export class Collection extends Base {
     }
 
     // Returns default options
-    getDefaultOptions(): Record<string, unknown> {
+    getDefaultOptions(): ICollectionOptions {
         return merge(super.getDefaultOptions(), {
             // The class/constructor for this collection's model type
             model: Model,
+
+            methods: {
+                fetch: 'get',
+            },
+
+            // Query parameters
+            queryParameter: 'q',
+            pageParameter: 'page',
+            perPageParameter: 'per_page',
+            sortParameter: 'sort',
+            sortDirectionParameter: 'direction',
+            filterParameter: 'filter',
+            searchParameter: 'search',
+            delimiter: ',',
+
             // Whether this collection should send model identifiers as JSON
             // in the body of a delete request, instead of a query parameter
             useDeleteBody: true,

@@ -1,6 +1,7 @@
 import { Ref } from 'vue';
 import { Base } from './Base';
 import { Model } from './Model';
+import { ICollectionOptions } from './types';
 export declare const NO_PAGE: null;
 export declare const LAST_PAGE = 0;
 export declare class Collection extends Base {
@@ -51,7 +52,7 @@ export declare class Collection extends Base {
     getPage(): number | null;
     isPaginated(): boolean;
     isLastPage(): boolean;
-    getDefaultOptions(): Record<string, unknown>;
+    getDefaultOptions(): ICollectionOptions;
     getRouteParameters(): Record<string, unknown>;
     toJSON(): Model[];
     toArray(): unknown[];

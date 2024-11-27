@@ -206,11 +206,7 @@ class Base {
     /**
      * Fetches data from the database/API.
      *
-     * @param {Object} options Fetch options
-     * @param {string} [options.method] HTTP method
-     * @param {string} [options.url] URL to fetch from
-     * @param {Object} [options.params] Query parameters
-     * @param {Object} [options.headers] Request headers
+     * @param {IRequestOptions} options Fetch options
      * @returns {Promise<Response>} Promise that resolves with the response
      */
     fetch(options = {}) {
@@ -263,12 +259,7 @@ class Base {
     /**
      * Persists data to the database/API.
      *
-     * @param {Object} options Save options
-     * @param {string} [options.method] HTTP method
-     * @param {string} [options.url] URL to save to
-     * @param {Object} [options.data] Data to save
-     * @param {Object} [options.params] Query parameters
-     * @param {Object} [options.headers] Request headers
+     * @param {IRequestOptions} options Save options
      * @returns {Promise<Response>} Promise that resolves with the response
      */
     save(options = {}) {
@@ -308,12 +299,7 @@ class Base {
     /**
      * Removes data from the database/API.
      *
-     * @param {Object} options Delete options
-     * @param {string} [options.method] HTTP method
-     * @param {string} [options.url] URL for deletion
-     * @param {Object} [options.data] Data to send with delete request
-     * @param {Object} [options.params] Query parameters
-     * @param {Object} [options.headers] Request headers
+     * @param {IRequestOptions} options Delete options
      * @returns {Promise<Response>} Promise that resolves with the response
      */
     delete(options = {}) {
@@ -365,12 +351,7 @@ class Base {
     /**
      * Persists data to the database/API using FormData.
      *
-     * @param {Object} options Upload options
-     * @param {string} [options.method] HTTP method
-     * @param {string} [options.url] URL to upload to
-     * @param {Object} [options.data] Data to upload
-     * @param {Object} [options.params] Query parameters
-     * @param {Object} [options.headers] Request headers
+     * @param {IRequestOptions} options Upload options
      * @returns {Promise<Response>} Promise that resolves with the response
      */
     upload(options = {}) {
@@ -432,6 +413,17 @@ class Base {
             ...this.getDefaultHeaders(),
             ...this.getOption('headers.delete', {})
         };
+    }
+    /**
+     * Creates a new Request using the given configuration.
+     * @param {AxiosRequestConfig} config The request configuration
+     * @returns {Request} A new Request using the given configuration.
+     */
+    createRequest(config) {
+        return new Request_1.Request({
+            ...config,
+            ...(this._http.defaults || {})
+        });
     }
 }
 exports.Base = Base;

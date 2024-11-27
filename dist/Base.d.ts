@@ -1,6 +1,8 @@
 import { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { Request } from './Request';
 import { Response } from './Response';
 import { Ref } from 'vue';
+import { IRequestOptions } from './types';
 export declare abstract class Base {
     protected _options: Record<string, any>;
     protected _http: AxiosInstance;
@@ -37,19 +39,10 @@ export declare abstract class Base {
     /**
      * Fetches data from the database/API.
      *
-     * @param {Object} options Fetch options
-     * @param {string} [options.method] HTTP method
-     * @param {string} [options.url] URL to fetch from
-     * @param {Object} [options.params] Query parameters
-     * @param {Object} [options.headers] Request headers
+     * @param {IRequestOptions} options Fetch options
      * @returns {Promise<Response>} Promise that resolves with the response
      */
-    fetch(options?: {
-        method?: string;
-        url?: string;
-        params?: Record<string, any>;
-        headers?: Record<string, any>;
-    }): Promise<Response>;
+    fetch(options?: IRequestOptions): Promise<Response>;
     /**
      * Called before a fetch request is made.
      * @returns {Promise<void>} Promise that resolves with the request operation
@@ -73,21 +66,10 @@ export declare abstract class Base {
     /**
      * Persists data to the database/API.
      *
-     * @param {Object} options Save options
-     * @param {string} [options.method] HTTP method
-     * @param {string} [options.url] URL to save to
-     * @param {Object} [options.data] Data to save
-     * @param {Object} [options.params] Query parameters
-     * @param {Object} [options.headers] Request headers
+     * @param {IRequestOptions} options Save options
      * @returns {Promise<Response>} Promise that resolves with the response
      */
-    save(options?: {
-        method?: string;
-        url?: string;
-        data?: Record<string, any>;
-        params?: Record<string, any>;
-        headers?: Record<string, any>;
-    }): Promise<Response>;
+    save(options?: IRequestOptions): Promise<Response>;
     /**
      * Called before a save request is made.
      * @returns {Promise<void>} Promise that resolves with the request operation
@@ -107,21 +89,10 @@ export declare abstract class Base {
     /**
      * Removes data from the database/API.
      *
-     * @param {Object} options Delete options
-     * @param {string} [options.method] HTTP method
-     * @param {string} [options.url] URL for deletion
-     * @param {Object} [options.data] Data to send with delete request
-     * @param {Object} [options.params] Query parameters
-     * @param {Object} [options.headers] Request headers
+     * @param {IRequestOptions} options Delete options
      * @returns {Promise<Response>} Promise that resolves with the response
      */
-    delete(options?: {
-        method?: string;
-        url?: string;
-        data?: Record<string, any>;
-        params?: Record<string, any>;
-        headers?: Record<string, any>;
-    }): Promise<Response>;
+    delete(options?: IRequestOptions): Promise<Response>;
     /**
      * Called before a delete request is made.
      * @returns {Promise<void>} Promise that resolves with the request operation
@@ -147,21 +118,10 @@ export declare abstract class Base {
     /**
      * Persists data to the database/API using FormData.
      *
-     * @param {Object} options Upload options
-     * @param {string} [options.method] HTTP method
-     * @param {string} [options.url] URL to upload to
-     * @param {Object} [options.data] Data to upload
-     * @param {Object} [options.params] Query parameters
-     * @param {Object} [options.headers] Request headers
+     * @param {IRequestOptions} options Upload options
      * @returns {Promise<Response>} Promise that resolves with the response
      */
-    upload(options?: {
-        method?: string;
-        url?: string;
-        data?: Record<string, any>;
-        params?: Record<string, any>;
-        headers?: Record<string, any>;
-    }): Promise<Response>;
+    upload(options?: IRequestOptions): Promise<Response>;
     /**
      * Returns the full URL to use when making a save request.
      * @returns {string} The URL for saving this instance
@@ -182,4 +142,10 @@ export declare abstract class Base {
     protected getDeleteBody(): Record<string, any>;
     protected getDeleteQuery(): Record<string, any>;
     protected getDeleteHeaders(): Record<string, any>;
+    /**
+     * Creates a new Request using the given configuration.
+     * @param {AxiosRequestConfig} config The request configuration
+     * @returns {Request} A new Request using the given configuration.
+     */
+    protected createRequest(config: AxiosRequestConfig): Request;
 }

@@ -12,7 +12,7 @@ export declare class Collection extends Base {
     protected _attributes: Ref<Record<string, unknown>>;
     protected _registry: Ref<Record<string, unknown>>;
     protected _page: Ref<number | null>;
-    constructor(models?: Model[], options?: Record<string, unknown>, attributes?: Record<string, unknown>);
+    constructor(models?: Model[], attributes?: Record<string, unknown>, options?: Record<string, any>);
     get loading(): boolean;
     set loading(value: boolean);
     get saving(): boolean;
@@ -55,4 +55,5 @@ export declare class Collection extends Base {
     getRouteParameters(): Record<string, unknown>;
     toJSON(): Model[];
     toArray(): unknown[];
+    uniqueId(): string;
 }

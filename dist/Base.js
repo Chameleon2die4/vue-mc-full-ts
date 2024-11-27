@@ -15,8 +15,12 @@ class Base {
         this._uid = this.generateUid();
         // Create a new axios instance for this instance
         this._http = this.createHTTPClient();
-        // Set all options on this instance
-        this.setOptions((0, lodash_1.merge)({}, this.getDefaultOptions(), options));
+        // Set all options on this instance, merging defaults with passed options
+        this.setOptions((0, lodash_1.merge)({}, this.getDefaultOptions(), this.options(), options));
+    }
+    // Returns this instance's default options
+    options() {
+        return {};
     }
     // Creates a new HTTP client
     createHTTPClient() {
@@ -70,8 +74,8 @@ class Base {
         }
     }
     // Gets an option value
-    getOption(key) {
-        return (0, lodash_1.get)(this._options, key);
+    getOption(key, fallback = null) {
+        return (0, lodash_1.get)(this._options, key, fallback);
     }
     // Gets all options
     getOptions() {
@@ -90,26 +94,56 @@ class Base {
         return {};
     }
     // Generates a route URL by replacing parameter placeholders
-    getURL(action) {
+    getURL(action, parameters) {
         const route = this.getRoute(action);
         if (!route) {
             return '';
         }
         let url = route;
-        const parameters = this.getRouteParameters();
+        const routeParams = parameters || this.getRouteParameters();
         // Replace all route parameters with their values
-        for (const key in parameters) {
-            const value = parameters[key];
+        for (const key in routeParams) {
+            const value = routeParams[key];
             url = url.replace(`:${key}`, encodeURIComponent(value));
         }
         return url;
     }
     // Creates a new request
-    request(config) {
-        return new Request_1.Request({
+    request(config, onRequest, onSuccess, onFailure) {
+        // Create request with merged config
+        const request = new Request_1.Request({
             ...config,
             ...(this._http.defaults || {}),
         });
+        // If additional callbacks are provided, handle more complex request flow
+        if (onRequest || onSuccess || onFailure) {
+            return this.executeRequest(request, onRequest, onSuccess, onFailure);
+        }
+        // For simple requests, just execute and return Promise<Response>
+        return this.executeRequest(request);
+    }
+    // Helper method to execute a more complex request with callbacks
+    async executeRequest(request, onRequest, onSuccess, onFailure) {
+        try {
+            // Optional pre-request hook
+            if (onRequest) {
+                await onRequest();
+            }
+            // Perform the request and ensure we always return a Response
+            const response = await request.send();
+            // Optional success callback
+            if (onSuccess) {
+                onSuccess(response);
+            }
+            return response;
+        }
+        catch (error) {
+            // Optional failure callback
+            if (onFailure) {
+                onFailure(error, undefined);
+            }
+            throw error;
+        }
     }
     // Determines if a response is valid
     isValidResponse(response) {
@@ -168,6 +202,236 @@ class Base {
     // Generates a unique identifier
     generateUid() {
         return `${this.constructor.name}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+    /**
+     * Fetches data from the database/API.
+     *
+     * @param {Object} options Fetch options
+     * @param {string} [options.method] HTTP method
+     * @param {string} [options.url] URL to fetch from
+     * @param {Object} [options.params] Query parameters
+     * @param {Object} [options.headers] Request headers
+     * @returns {Promise<Response>} Promise that resolves with the response
+     */
+    fetch(options = {}) {
+        const config = {
+            method: (0, lodash_1.defaultTo)(options.method, this.getFetchMethod()),
+            url: (0, lodash_1.defaultTo)(options.url, this.getFetchURL()),
+            params: (0, lodash_1.defaultTo)(options.params, this.getFetchQuery()),
+            headers: (0, lodash_1.defaultTo)(options.headers, this.getFetchHeaders()),
+        };
+        return this.request(config, this.onFetch, this.onFetchSuccess, this.onFetchFailure);
+    }
+    /**
+     * Called before a fetch request is made.
+     * @returns {Promise<void>} Promise that resolves with the request operation
+     */
+    onFetch() {
+        return Promise.resolve();
+    }
+    /**
+     * Called when a fetch request was successful.
+     * @param {Response} response The response from the server
+     */
+    onFetchSuccess(response) {
+        // Override in subclass if needed
+    }
+    /**
+     * Called when a fetch request failed.
+     * @param {Error} error The error that occurred
+     * @param {Response} [response] The response from the server if available
+     */
+    onFetchFailure(error, response) {
+        // Override in subclass if needed
+    }
+    getFetchURL() {
+        const fetchRoute = this.getRoute('fetch');
+        return fetchRoute ? this.getURL(fetchRoute, this.getRouteParameters()) : '';
+    }
+    getFetchMethod() {
+        return this.getOption('methods.fetch', 'GET');
+    }
+    getFetchQuery() {
+        return {};
+    }
+    getFetchHeaders() {
+        return {
+            ...this.getDefaultHeaders(),
+            ...this.getOption('headers.fetch', {})
+        };
+    }
+    /**
+     * Persists data to the database/API.
+     *
+     * @param {Object} options Save options
+     * @param {string} [options.method] HTTP method
+     * @param {string} [options.url] URL to save to
+     * @param {Object} [options.data] Data to save
+     * @param {Object} [options.params] Query parameters
+     * @param {Object} [options.headers] Request headers
+     * @returns {Promise<Response>} Promise that resolves with the response
+     */
+    save(options = {}) {
+        // Create a complete config object with defaults
+        const config = {
+            url: (0, lodash_1.defaultTo)(options.url, this.getSaveURL()),
+            method: (0, lodash_1.defaultTo)(options.method, this.getSaveMethod()),
+            data: (0, lodash_1.defaultTo)(options.data, this.getSaveData()),
+            params: (0, lodash_1.defaults)(options.params, this.getSaveQuery()),
+            headers: (0, lodash_1.defaults)(options.headers, this.getSaveHeaders()),
+        };
+        // Use the request method which now guarantees Promise<Response>
+        return this.request(config, this.onSave, this.onSaveSuccess, this.onSaveFailure);
+    }
+    /**
+     * Called before a save request is made.
+     * @returns {Promise<void>} Promise that resolves with the request operation
+     */
+    onSave() {
+        return Promise.resolve();
+    }
+    /**
+     * Called when a save request was successful.
+     * @param {Response} response The response from the server
+     */
+    onSaveSuccess(response) {
+        // Override in subclass if needed
+    }
+    /**
+     * Called when a save request failed.
+     * @param {Error} error The error that occurred
+     * @param {Response} [response] The response from the server if available
+     */
+    onSaveFailure(error, response) {
+        // Override in subclass if needed
+    }
+    /**
+     * Removes data from the database/API.
+     *
+     * @param {Object} options Delete options
+     * @param {string} [options.method] HTTP method
+     * @param {string} [options.url] URL for deletion
+     * @param {Object} [options.data] Data to send with delete request
+     * @param {Object} [options.params] Query parameters
+     * @param {Object} [options.headers] Request headers
+     * @returns {Promise<Response>} Promise that resolves with the response
+     */
+    delete(options = {}) {
+        // Create a complete config object with defaults
+        const config = {
+            url: (0, lodash_1.defaultTo)(options.url, this.getDeleteURL()),
+            method: (0, lodash_1.defaultTo)(options.method, this.getDeleteMethod()),
+            data: (0, lodash_1.defaultTo)(options.data, this.getDeleteBody()),
+            params: (0, lodash_1.defaults)(options.params, this.getDeleteQuery()),
+            headers: (0, lodash_1.defaults)(options.headers, this.getDeleteHeaders()),
+        };
+        // Use the request method which now guarantees Promise<Response>
+        return this.request(config, this.onDelete, this.onDeleteSuccess, this.onDeleteFailure);
+    }
+    /**
+     * Called before a delete request is made.
+     * @returns {Promise<void>} Promise that resolves with the request operation
+     */
+    onDelete() {
+        return Promise.resolve();
+    }
+    /**
+     * Called when a delete request was successful.
+     * @param {Response} response The response from the server
+     */
+    onDeleteSuccess(response) {
+        // Override in subclass if needed
+    }
+    /**
+     * Called when a delete request failed.
+     * @param {Error} error The error that occurred
+     * @param {Response} [response] The response from the server if available
+     */
+    onDeleteFailure(error, response) {
+        // Override in subclass if needed
+    }
+    /**
+     * Converts given data to FormData for uploading.
+     * @param {Record<string, any>} data The data to convert
+     * @returns {FormData} The converted form data
+     */
+    convertObjectToFormData(data) {
+        const form = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+            form.append(key, value);
+        });
+        return form;
+    }
+    /**
+     * Persists data to the database/API using FormData.
+     *
+     * @param {Object} options Upload options
+     * @param {string} [options.method] HTTP method
+     * @param {string} [options.url] URL to upload to
+     * @param {Object} [options.data] Data to upload
+     * @param {Object} [options.params] Query parameters
+     * @param {Object} [options.headers] Request headers
+     * @returns {Promise<Response>} Promise that resolves with the response
+     */
+    upload(options = {}) {
+        const data = (0, lodash_1.defaultTo)(options.data, this.getSaveData());
+        const config = {
+            ...options,
+            data: this.convertObjectToFormData(data),
+        };
+        return this.save(config);
+    }
+    /**
+     * Returns the full URL to use when making a save request.
+     * @returns {string} The URL for saving this instance
+     */
+    getSaveURL() {
+        const saveRoute = this.getSaveRoute();
+        return saveRoute ? this.getURL(saveRoute, this.getRouteParameters()) : '';
+    }
+    /**
+     * Returns the key to use when generating the `save` URL.
+     * @returns {string | null} The route key for saving this instance
+     */
+    getSaveRoute() {
+        return this.getRoute('save');
+    }
+    getSaveMethod() {
+        return this.getOption('methods.save', 'POST');
+    }
+    getSaveData() {
+        return {};
+    }
+    getSaveQuery() {
+        return {};
+    }
+    getSaveHeaders() {
+        return {
+            ...this.getDefaultHeaders(),
+            ...this.getOption('headers.save', {})
+        };
+    }
+    getDefaultHeaders() {
+        return this.getOption('headers', {});
+    }
+    getDeleteURL() {
+        const deleteRoute = this.getRoute('delete');
+        return deleteRoute ? this.getURL(deleteRoute, this.getRouteParameters()) : '';
+    }
+    getDeleteMethod() {
+        return this.getOption('methods.delete', 'DELETE');
+    }
+    getDeleteBody() {
+        return {};
+    }
+    getDeleteQuery() {
+        return {};
+    }
+    getDeleteHeaders() {
+        return {
+            ...this.getDefaultHeaders(),
+            ...this.getOption('headers.delete', {})
+        };
     }
 }
 exports.Base = Base;

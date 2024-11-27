@@ -2,8 +2,6 @@ import { ref, Ref } from 'vue'
 import { get, set, defaultsDeep, defaultTo, values, isEmpty, isPlainObject, each, merge, every } from 'lodash'
 import { Base } from './Base'
 import { Model } from './Model'
-import { Request } from './Request'
-import { Response } from './Response'
 
 // Used as a marker to indicate that pagination is not enabled
 export const NO_PAGE = null

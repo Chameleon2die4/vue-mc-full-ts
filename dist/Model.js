@@ -10,6 +10,8 @@ const Request_1 = require("./Request");
 class Model extends Base_1.Base {
     constructor(attributes = {}, collection = null, options = {}) {
         super(options);
+        // Set options on the base class
+        this.setOptions((0, lodash_1.merge)({}, this.getDefaultOptions(), this.options(), options));
         this._collections = (0, vue_1.ref)({}); // Collections that contain this model
         this._reference = (0, vue_1.ref)({}); // Saved attribute state
         this._attributes = (0, vue_1.ref)({}); // Active attribute state
@@ -19,15 +21,15 @@ class Model extends Base_1.Base {
         this._saving = (0, vue_1.ref)(false);
         this._deleting = (0, vue_1.ref)(false);
         this._fatal = (0, vue_1.ref)(false);
+        // Store the collection reference
+        if (collection) {
+            this._collections.value[collection.uniqueId()] = collection;
+        }
+        // Set the initial attributes
+        this.assign(attributes);
         this.clearState();
         // Cache mutator pipelines so they can run as a single function
         this.compileMutators();
-        // Assign all given model data to the model's attributes and reference
-        this.assign(attributes);
-        // Register the given collection (if any) to the model
-        if (collection) {
-            this.registerCollection(collection);
-        }
     }
     // Getters and setters for reactive properties
     get loading() {
@@ -84,8 +86,7 @@ class Model extends Base_1.Base {
     // Creates a copy of this model
     clone() {
         const attributes = this.getAttributes();
-        const options = this.getOptions();
-        return new this.constructor(attributes, null, options);
+        return new this.constructor(attributes, null);
     }
     // Validates a specific attribute
     validateAttribute(attribute) {
@@ -279,7 +280,7 @@ class Model extends Base_1.Base {
     // Registers a collection
     registerCollection(collection) {
         if (!this.hasCollection(collection)) {
-            this._collections.value[collection._uid] = collection;
+            this._collections.value[collection.uniqueId()] = collection;
         }
     }
     // Checks if collection is registered
@@ -287,8 +288,8 @@ class Model extends Base_1.Base {
         const uid = typeof collection === 'string'
             ? collection
             : (collection instanceof Collection_1.Collection
-                ? collection._uid
-                : (collection._uid || ''));
+                ? collection.uniqueId()
+                : (collection.uniqueId || ''));
         return Object.prototype.hasOwnProperty.call(this._collections.value, uid);
     }
     // Clears the model state

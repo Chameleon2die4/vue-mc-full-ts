@@ -1,4 +1,4 @@
-# vue-mc-ts
+# vue-mc-full-ts
 
 A TypeScript port of [vue-mc](https://www.npmjs.com/package/vue-mc), bringing type safety to Models and Collections for Vue.js.
 
@@ -29,7 +29,7 @@ npm install vue-mc-full-ts
 ## Basic Usage
 
 ```typescript
-import { Model, Collection } from 'vue-mc-ts';
+import { Model, Collection } from 'vue-mc-full-ts';
 
 // Define a model with TypeScript types
 class User extends Model {

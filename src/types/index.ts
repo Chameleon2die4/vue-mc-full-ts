@@ -21,6 +21,33 @@ export interface IRequestConfig {
   [key: string]: any;
 }
 
+export interface IRequestOptions {
+  /**
+   * HTTP method for the request
+   */
+  method?: string;
+
+  /**
+   * URL for the request
+   */
+  url?: string;
+
+  /**
+   * Data to be sent as the request body
+   */
+  data?: Record<string, any>;
+
+  /**
+   * Query parameters to be added to the URL
+   */
+  params?: Record<string, any>;
+
+  /**
+   * Request headers
+   */
+  headers?: Record<string, any>;
+}
+
 export interface IRequestError extends Error {
   error: Error;
   response?: ICustomResponse;
@@ -32,3 +59,5 @@ export interface IResponseError extends Error {
   response: ICustomResponse;
   getResponse(): ICustomResponse;
 }
+
+export type Routes = Record<'fetch' | 'save' | 'delete' | string, string>;

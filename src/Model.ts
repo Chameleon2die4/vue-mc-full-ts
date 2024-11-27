@@ -1,5 +1,5 @@
 import { ref, Ref } from 'vue'
-import { get, set, defaultsDeep, defaultTo, values, isEmpty, isPlainObject, each, unset, has, merge } from 'lodash'
+import { get, set, defaultsDeep, isEmpty, isPlainObject, each, unset, has, merge } from 'lodash'
 import { Base } from './Base'
 import { ValidationError } from './errors/ValidationError'
 import { Collection } from './Collection'

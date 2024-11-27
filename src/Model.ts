@@ -1,5 +1,5 @@
 import { ref, Ref } from 'vue'
-import { get, set, defaultsDeep, defaultTo, values, isEmpty, isPlainObject, each, unset, has } from 'lodash'
+import { get, set, defaultsDeep, defaultTo, values, isEmpty, isPlainObject, each, unset, has, merge } from 'lodash'
 import { Base } from './Base'
 import { ValidationError } from './errors/ValidationError'
 import { Collection } from './Collection'
@@ -19,6 +19,9 @@ export class Model extends Base {
 
     constructor(attributes: Record<string, any> = {}, collection: Collection | null = null, options: Record<string, any> = {}) {
         super(options)
+        
+        // Set options on the base class
+        this.setOptions(merge({}, this.getDefaultOptions(), this.options(), options))
 
         this._collections = ref({}) // Collections that contain this model
         this._reference = ref({})   // Saved attribute state
@@ -30,18 +33,18 @@ export class Model extends Base {
         this._deleting = ref(false)
         this._fatal = ref(false)
 
+        // Store the collection reference
+        if (collection) {
+            this._collections.value[collection.uniqueId()] = collection
+        }
+
+        // Set the initial attributes
+        this.assign(attributes)
+
         this.clearState()
 
         // Cache mutator pipelines so they can run as a single function
         this.compileMutators()
-
-        // Assign all given model data to the model's attributes and reference
-        this.assign(attributes)
-
-        // Register the given collection (if any) to the model
-        if (collection) {
-            this.registerCollection(collection)
-        }
     }
 
     // Getters and setters for reactive properties
@@ -111,8 +114,7 @@ export class Model extends Base {
     // Creates a copy of this model
     clone(): Model {
         const attributes = this.getAttributes()
-        const options = this.getOptions()
-        return new (this.constructor as any)(attributes, null, options)
+        return new (this.constructor as any)(attributes, null)
     }
 
     // Validates a specific attribute
@@ -341,7 +343,7 @@ export class Model extends Base {
     // Registers a collection
     registerCollection(collection: Collection): void {
         if (!this.hasCollection(collection)) {
-            this._collections.value[collection._uid] = collection
+            this._collections.value[collection.uniqueId()] = collection
         }
     }
 
@@ -350,8 +352,8 @@ export class Model extends Base {
         const uid = typeof collection === 'string'
             ? collection
             : (collection instanceof Collection
-                ? collection._uid
-                : (collection._uid || ''))
+                ? collection.uniqueId()
+                : (collection.uniqueId || ''))
         return Object.prototype.hasOwnProperty.call(this._collections.value, uid)
     }
 

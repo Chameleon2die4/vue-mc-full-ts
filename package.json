@@ -1,6 +1,6 @@
 {
-  "name": "vue-mc-ts",
-  "version": "1.0.0",
+  "name": "vue-mc-full-ts",
+  "version": "1.0.2",
   "description": "TypeScript version of Vue Model Collections library",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -15,7 +15,11 @@
     "collection",
     "typescript"
   ],
-  "author": "",
+  "author": "Chameleon2die4 <chameleon2die4@gmail.com> (https://github.com/Chameleon2die4)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Chameleon2die4/vue-mc-full-ts"
+  },
   "license": "MIT",
   "dependencies": {
     "axios": "^1.7.8",

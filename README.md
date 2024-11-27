@@ -18,7 +18,7 @@ This library is a TypeScript implementation of the popular vue-mc library, provi
 ## Installation
 
 ```bash
-npm install vue-mc-ts
+npm install vue-mc-full-ts
 ```
 
 ## Requirements

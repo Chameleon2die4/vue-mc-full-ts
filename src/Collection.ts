@@ -21,9 +21,9 @@ export class Collection extends Base {
     protected _registry: Ref<Record<string, unknown>>
     protected _page: Ref<number | null>
 
-    constructor(models: Model[] = [], options: Record<string, unknown> = {}, attributes: Record<string, unknown> = {}) {
+    constructor(models: Model[] = [], attributes: Record<string, unknown> = {}, options: Record<string, any> = {}) {
         super(options)
-
+        
         this._loading = ref(false)
         this._saving = ref(false)
         this._deleting = ref(false)
@@ -33,14 +33,12 @@ export class Collection extends Base {
         this._registry = ref({})
         this._page = ref(NO_PAGE)
 
-        this.clearState()
+        // Set the initial attributes
+        this._attributes.value = attributes
 
-        // Set all given attributes
-        this.set(defaultsDeep({}, attributes, this.defaults()))
-
-        // Add all given models (if any) to this collection
-        if (models) {
-            this.add(values(models))
+        // Add all given models
+        if (models && models.length) {
+            this.add(models)
         }
     }
 
@@ -303,5 +301,10 @@ export class Collection extends Base {
         return this.models.map(model => 
             (model as any).toJSON ? (model as any).toJSON() : model
         )
+    }
+
+    // Generates a unique identifier for this collection instance
+    uniqueId(): string {
+        return `collection_${Math.random().toString(36).substr(2, 9)}`
     }
 }

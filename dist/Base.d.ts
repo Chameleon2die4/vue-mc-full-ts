@@ -1,0 +1,36 @@
+import { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { Request } from './Request';
+import { Response } from './Response';
+import { Ref } from 'vue';
+export declare abstract class Base {
+    protected _options: Record<string, any>;
+    protected _http: AxiosInstance;
+    protected _errors: Ref<Record<string, any>>;
+    _uid: string;
+    constructor(options?: Record<string, any>);
+    protected createHTTPClient(): AxiosInstance;
+    protected getDefaultOptions(): Record<string, any>;
+    protected getHTTPConfig(): AxiosRequestConfig;
+    setOption(key: string, value: any): void;
+    setOptions(options: Record<string, any>): void;
+    getOption(key: string): any;
+    getOptions(): Record<string, any>;
+    routes(): Record<string, any>;
+    getRoute(action: string): string | null;
+    getRouteParameters(): Record<string, any>;
+    getURL(action: string): string;
+    request(config: AxiosRequestConfig): Request;
+    isValidResponse(response: Response): boolean;
+    getErrors(): Record<string, any>;
+    getError(key: string): any;
+    setError(key: string, message: any): void;
+    setErrors(errors: Record<string, any>): void;
+    clearErrors(): void;
+    hasErrors(): boolean;
+    hasError(key: string): boolean;
+    handleResponseError(error: any): void;
+    protected onResponseError(error: any): void;
+    protected getResponseErrorMessage(error: any): string;
+    toJSON(): Record<string, any>;
+    protected generateUid(): string;
+}

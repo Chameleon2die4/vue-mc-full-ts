@@ -6,6 +6,7 @@ import { Collection } from './Collection'
 import { Request } from './Request'
 import { Response } from './Response'
 import { IModelOptions } from './types'
+import { ValidationRule, ValidatorResult } from './validation'
 
 export class Model<A extends Record<string, any> = Record<string, any>> extends Base {
     [key: string]: any;  // Add index signature to allow property access
@@ -120,7 +121,7 @@ export class Model<A extends Record<string, any> = Record<string, any>> extends 
     }
 
     // Returns validation rules
-    validation(): Record<string, any> {
+    validation(): Record<string, Array<ValidationRule> | ValidationRule> {
         return {}
     }
 
@@ -151,52 +152,68 @@ export class Model<A extends Record<string, any> = Record<string, any>> extends 
         return new (this.constructor as any)(attributes, null)
     }
 
-    // Validates a specific attribute
-    validateAttribute(attribute: string): boolean {
-        const rules = this.getValidateRules(attribute)
-        const value = this.get(attribute)
-        let errors: string[] = []
-
-        // No validation rules = valid
-        if (!rules || isEmpty(rules)) {
-            return true
+    // Validates the given attribute using the given validation rule.
+    validateAttribute(attribute: string, value: any, validations: Array<ValidationRule> | ValidationRule): string[] {
+        const errors: string[] = []
+        
+        if (Array.isArray(validations)) {
+            // Handle array-style validation
+            validations.forEach(validation => {
+                const result = validation.validate(value)
+                if (!result.valid && result.message) {
+                    errors.push(result.message)
+                }
+            })
+        } else {
+            // Handle chained validation
+            const result = validations.validate(value)
+            if (!result.valid && result.message) {
+                errors.push(result.message)
+            }
         }
 
-        // Run through all rules (can be multiple)
-        each(rules, (rule: (arg0: any, arg1: string) => any) => {
-            const error = rule(value, attribute)
-            if (error !== true) {
-                errors.push(error as string)
-            }
-        })
-
-        // Set errors if any
-        this.setAttributeErrors(attribute, errors)
-
-        return errors.length === 0
+        return errors
     }
 
-    // Validates all attributes
-    async validate(attributes?: A): Promise<boolean> {
-        let valid = true
+    // Validates one or more attributes of the model.
+    async validate(attributes?: string[]): Promise<boolean> {
+        this.clearErrors();
 
-        // Validate all attributes if none provided
-        if (!attributes) {
-            attributes = this.getAttributes()
+        // Get all validation rules for this model
+        const validations = this.validation();
+
+        // If no attributes were given, validate all attributes that have validation rules
+        const attributesToValidate = attributes || Object.keys(validations);
+
+        // Collect all errors
+        const errors: Record<string, string[]> = {};
+        let hasErrors = false;
+
+        // Validate each attribute
+        attributesToValidate.forEach((attribute) => {
+            const rules = validations[attribute];
+            if (rules) {
+                const value = this.get(attribute);
+                const attributeErrors = this.validateAttribute(attribute, value, rules);
+                if (attributeErrors.length > 0) {
+                    errors[attribute] = attributeErrors;
+                    this._errors.value[attribute] = attributeErrors;
+                    hasErrors = true;
+                }
+            }
+        });
+
+        // If there are any errors, reject with the error messages
+        if (hasErrors) {
+            return Promise.reject(errors);
         }
 
-        // Run validation on each attribute
-        each(attributes, (value: any, attribute: string) => {
-            if (!this.validateAttribute(attribute)) {
-                valid = false
-            }
-        })
-
-        return valid
+        // Otherwise resolve with true
+        return Promise.resolve(true);
     }
 
     // Gets validation rules for an attribute
-    getValidateRules(attribute: string): any[] {
+    getValidateRules(attribute: string): Array<ValidationRule> | ValidationRule {
         return get(this.validation(), attribute, [])
     }
 
